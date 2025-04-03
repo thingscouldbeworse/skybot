@@ -323,5 +323,6 @@ def process_submission(submission):
 
 
 if __name__ == "__main__":
-    subreddit_name = "SkyTagBotStaging"
+    # Get subreddit name from environment variable, default to SkyTagBotStaging if not set
+    subreddit_name = os.getenv("REDDIT_SUBREDDIT", "SkyTagBotStaging")
     process_subreddit(subreddit_name)
