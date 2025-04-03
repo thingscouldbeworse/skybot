@@ -4,6 +4,7 @@ from ocr_script import extract_text_from_image
 from aircraft_lookup import process_registration
 import os
 from dotenv import load_dotenv
+import time
 
 # Load environment variables
 load_dotenv()
@@ -73,6 +74,19 @@ def get_image_urls_from_submission(submission):
     return []
 
 
+def is_submission_recent(submission, max_age_hours=1):
+    """Check if a submission is less than max_age_hours old."""
+    current_time = time.time()
+    submission_age = current_time - submission.created_utc
+    age_hours = submission_age / 3600  # Convert seconds to hours
+
+    if age_hours > max_age_hours:
+        print(f"\n⏳ Skipping old submission: {submission.title}")
+        print(f"   Age: {age_hours:.1f} hours")
+        return False
+    return True
+
+
 def process_subreddit(subreddit_name):
     # Initialize Reddit instance with write permissions
     reddit = praw.Reddit(
@@ -93,12 +107,16 @@ def process_subreddit(subreddit_name):
     print(f"\nMonitoring r/{subreddit_name} for new submissions...")
     print("-" * 50)
 
-    # Process hot submissions
-    for submission in subreddit.hot(limit=25):
+    # Process new submissions
+    for submission in subreddit.new(limit=25):  # Changed from hot() to new()
         # Skip if already processed
         if submission.id in processed_submissions:
             print(f"\n⏭️  Skipping submission: {submission.title}")
             print(f"   ID: {submission.id}")
+            continue
+
+        # Skip if submission is too old
+        if not is_submission_recent(submission):
             continue
 
         # Get all image URLs from the submission
@@ -167,7 +185,7 @@ def format_flight_info(result):
         comment.append(f"* Status: {flight['status']}")
 
     comment.append(
-        "\n^(I am a bot that finds aircraft registrations in images and looks up their flight information)"
+        "\n^(I am a bot that finds aircraft registrations in images and looks up their flight information. [GitHub](https://github.com/thingscouldbeworse/skybot))"
     )
 
     return "\n".join(comment)
